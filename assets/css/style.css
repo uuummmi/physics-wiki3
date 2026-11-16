@@ -1,0 +1,92 @@
+/* 微復古風色彩定義 */
+:root {
+    --bg-color: #f4f1ea;       /* 羊皮紙米白底色 */
+    --text-color: #2c3e50;     /* 墨深藍/炭灰色文字 */
+    --accent-color: #8c6d46;   /* 古銅金/焦糖棕裝飾色 */
+    --panel-bg: #e9e4d5;       /* 側邊欄復古色塊 */
+    --border-color: #d3cbbd;   /* 邊框線條色 */
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: "Noto Serif TC", "Songti TC", serif;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* 左側導覽列 */
+.sidebar {
+    width: 280px;
+    background-color: var(--panel-bg);
+    border-right: 2px solid var(--border-color);
+    padding: 2rem 1.5rem;
+    box-sizing: border-box;
+}
+
+.sidebar h2 {
+    font-size: 1.4rem;
+    margin-bottom: 0.2rem;
+    color: var(--text-color);
+}
+
+.sidebar .subtitle {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.sidebar hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    margin-bottom: 0.8rem;
+}
+
+.sidebar a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+.sidebar a:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+/* 右側文章內容區 */
+.content-area {
+    flex: 1;
+    padding: 3rem 4rem;
+    max-width: 900px;
+    box-sizing: border-box;
+}
+
+article h1, article h2, article h3 {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3rem;
+    margin-top: 2rem;
+}
+
+blockquote {
+    background-color: #e2dcce;
+    border-left: 4px solid var(--accent-color);
+    margin: 1.5rem 0;
+    padding: 1rem 1.5rem;
+    border-radius: 4px;
+}

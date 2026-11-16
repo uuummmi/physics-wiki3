@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人物理與學術筆記知識庫</title>
+    <!-- 引入微復古風樣式 -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- 引入 Markdown 解析器 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 左側導覽列 -->
+        <nav class="sidebar">
+            <h2>📜 物理學術筆記</h2>
+            <p class="subtitle">Physics & Study Wiki</p>
+            <hr>
+            <h3>筆記目錄</h3>
+            <ul id="note-list">
+    <li><a href="#" onclick="loadNote('notes/newton.md')">📌 牛頓運動定律與受力分析</a></li>
+    <li><a href="#" onclick="loadNote('notes/rotation.md')">📌 剛體繞固定軸的轉動與力矩分析</a></li>
+    <li><a href="#" onclick="loadNote('notes/momentum.md')">📌 線性動量、碰撞與總整理</a></li>
+</ul>
+        </nav>
+
+        <!-- 右側文章閱讀區 -->
+        <main class="content-area">
+            <article id="markdown-content">
+                <h1>歡迎來到物理筆記知識庫</h1>
+                <p>請從左側選單選擇你想閱讀的物理筆記主題。</p>
+            </article>
+        </main>
+    </div>
+
+    <script>
+        function loadNote(filePath) {
+            fetch(filePath)
+                .then(response => {
+                    if (!response.ok) throw new Error('找不到指定的筆記檔案：' + filePath + '（HTTP ' + response.status + '）');
+                    return response.text();
+                })
+                .then(text => {
+                    document.getElementById('markdown-content').innerHTML = marked.parse(text);
+                })
+                .catch(error => {
+                    document.getElementById('markdown-content').innerHTML = `<h2>載入失敗</h2><p>${error.message}</p>`;
+                });
+        }
+
+        window.onload = function() {
+            // 修正：檔名改為與側邊欄一致的 newton.md
+            loadNote('notes/newton.md');
+        };
+    </script>
+</body>
+</html>
