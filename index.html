@@ -6,8 +6,11 @@
     <title>個人物理與學術筆記知識庫</title>
     <!-- 引入微復古風樣式 -->
     <link rel="stylesheet" href="assets/css/style.css">
-    <!-- 引入 Markdown 解析器 -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 公式渲染 KaTeX（固定版本） -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <!-- 引入 Markdown 解析器（固定版本） -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -17,11 +20,12 @@
             <p class="subtitle">Physics & Study Wiki</p>
             <hr>
             <h3>筆記目錄</h3>
+            <!-- 新增筆記時，在這裡多加一行 <li>，data-note 填 notes/ 底下的檔案路徑 -->
             <ul id="note-list">
-    <li><a href="#" onclick="loadNote('notes/newton.md')">📌 牛頓運動定律與受力分析</a></li>
-    <li><a href="#" onclick="loadNote('notes/rotation.md')">📌 剛體繞固定軸的轉動與力矩分析</a></li>
-    <li><a href="#" onclick="loadNote('notes/momentum.md')">📌 線性動量、碰撞與總整理</a></li>
-</ul>
+                <li><a href="#" data-note="notes/newton.md">📌 牛頓運動定律與受力分析</a></li>
+                <li><a href="#" data-note="notes/rotation.md">📌 剛體繞固定軸的轉動與力矩分析</a></li>
+                <li><a href="#" data-note="notes/momentum.md">📌 線性動量、碰撞與總整理</a></li>
+            </ul>
         </nav>
 
         <!-- 右側文章閱讀區 -->
@@ -34,24 +38,113 @@
     </div>
 
     <script>
+        const contentEl = document.getElementById('markdown-content');
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+        }
+
+        // 1) 拆掉檔案開頭的 --- front matter，取出 title / category / date
+        function splitFrontMatter(text) {
+            const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+            if (!m) return { meta: {}, body: text };
+            const meta = {};
+            m[1].split(/\r?\n/).forEach(line => {
+                const i = line.indexOf(':');
+                if (i > 0) meta[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+            });
+            return { meta, body: text.slice(m[0].length) };
+        }
+
+        // 2) Markdown 轉 HTML，並用 KaTeX 渲染 $...$ 與 $$...$$ 公式
+        //    先把公式換成佔位符，避免 marked 把 _ * \ 等符號誤判成 Markdown 語法
+        function renderMarkdown(body) {
+            const maths = [];
+            const stash = (tex, display) => {
+                if (display) {
+                    // 去掉引用區塊裡多行公式每行開頭的 ">"
+                    tex = tex.split(/\r?\n/).map(l => l.replace(/^\s*>\s?/, '')).join('\n');
+                }
+                maths.push({ tex: tex.trim(), display });
+                return '@@MATH' + (maths.length - 1) + '@@';
+            };
+            body = body.replace(/\$\$([\s\S]+?)\$\$/g, (_, t) => stash(t, true));
+            body = body.replace(/\$([^$\n]+?)\$/g, (_, t) => stash(t, false));
+
+            let html = marked.parse(body);
+
+            html = html.replace(/@@MATH(\d+)@@/g, (_, i) => {
+                const { tex, display } = maths[Number(i)];
+                if (typeof katex === 'undefined') return escapeHtml(tex);
+                try {
+                    return katex.renderToString(tex, { displayMode: display, throwOnError: false });
+                } catch (e) {
+                    return escapeHtml(tex);
+                }
+            });
+            return html;
+        }
+
+        // 3) 幫標題加 id（規則同 GitHub），讓筆記內的目錄連結可以跳轉
+        function slugify(t) {
+            return t.toLowerCase()
+                .replace(/[^\p{L}\p{N}\s-]/gu, '')
+                .trim()
+                .replace(/\s+/g, '-');
+        }
+        function addHeadingIds() {
+            contentEl.querySelectorAll('h1, h2, h3, h4').forEach(h => {
+                if (!h.id) h.id = slugify(h.textContent);
+            });
+        }
+
         function loadNote(filePath) {
-            fetch(filePath)
+            fetch(encodeURI(filePath))
                 .then(response => {
                     if (!response.ok) throw new Error('找不到指定的筆記檔案：' + filePath + '（HTTP ' + response.status + '）');
                     return response.text();
                 })
                 .then(text => {
-                    document.getElementById('markdown-content').innerHTML = marked.parse(text);
+                    const { meta, body } = splitFrontMatter(text);
+                    let metaLine = '';
+                    const parts = [meta.category, meta.date].filter(Boolean).map(escapeHtml);
+                    if (parts.length) {
+                        metaLine = '<p style="opacity:.65;font-size:.9em;">' + parts.join(' ・ ') + '</p>';
+                    }
+                    contentEl.innerHTML = metaLine + renderMarkdown(body);
+                    addHeadingIds();
+                    window.scrollTo(0, 0);
+                    if (contentEl.parentElement) contentEl.parentElement.scrollTop = 0;
                 })
                 .catch(error => {
-                    document.getElementById('markdown-content').innerHTML = `<h2>載入失敗</h2><p>${error.message}</p>`;
+                    contentEl.innerHTML = '<h2>載入失敗</h2><p>' + escapeHtml(error.message) + '</p>';
                 });
         }
 
-        window.onload = function() {
-            // 修正：檔名改為與側邊欄一致的 newton.md
-            loadNote('notes/newton.md');
-        };
+        // 側邊欄點擊
+        document.querySelectorAll('#note-list a[data-note]').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                loadNote(a.dataset.note);
+            });
+        });
+
+        // 筆記內「本篇目錄」連結：平滑捲動到對應標題
+        contentEl.addEventListener('click', e => {
+            const a = e.target.closest('a[href^="#"]');
+            if (!a) return;
+            const id = decodeURIComponent(a.getAttribute('href').slice(1));
+            if (!id) return;
+            e.preventDefault();
+            const target = document.getElementById(id);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        // 開頁時預設載入清單中的第一篇
+        window.addEventListener('load', () => {
+            const first = document.querySelector('#note-list a[data-note]');
+            if (first) loadNote(first.dataset.note);
+        });
     </script>
 </body>
 </html>
